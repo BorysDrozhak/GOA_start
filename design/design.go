@@ -1,71 +1,44 @@
-package design
-
+package design                                     // The convention consists of naming the design
+                                                   // package "design"
 import (
-	. "github.com/goadesign/goa/design"
-	. "github.com/goadesign/goa/design/apidsl"
+        . "github.com/goadesign/goa/design"        // Use . imports to enable the DSL
+        . "github.com/goadesign/goa/design/apidsl"
 )
 
-var _ = API("cellar", func() {
-	Description("random service")
-	Host("localhost:8080")
+var _ = API("cellar", func() {                     // API defines the microservice endpoint and
+        Title("The virtual wine cellar")           // other global properties. There should be one
+        Description("A simple goa service")        // and exactly one API definition appearing in
+        Scheme("http")                             // the design.
+        Host("localhost:8080")
 })
 
-var BottlePaylod = Type("BottlePayload", func() {
-	Description("bottle is the type used to create a bottle")
+var _ = Resource("bottle", func() {                // Resources group related API endpoints
+        BasePath("/bottles")                       // together. They map to REST resources for REST
+        DefaultMedia(BottleMedia)                  // services.
 
-	Attribute("name", String, "name of bottle", func() {
-		MinLength(2)
-	})
-
-	Attribute("vintage", Integer, "Vintage of bottle", func() {
-		Minimum(1900)
-	})
-
-	Attribute("rating", Integer, "Rating of bottle", func() {
-		Minimum(1)
-		Maximum(5)
-	})
-
-	Required("name", "vintage", "rating")
+        Action("show", func() {                    // Actions define a single API endpoint together
+                Description("Get bottle by id")    // with its path, parameters (both path
+                Routing(GET("/:bottleID"))         // parameters and querystring values) and payload
+                Params(func() {                    // (shape of the request body).
+                        Param("bottleID", Integer, "Bottle ID")
+                })
+                Response(OK)                       // Responses define the shape and status code
+                Response(NotFound)                 // of HTTP responses.
+        })
 })
 
-
-var BottleMedia = MediaType("application/vnd.gophercon.goa.bottle", func() {
-	TypeName("bottle")
-	Reference(BottlePaylod)
-
-	Attributes(func() {
-		Attribute("ID", Integer, "Unique bottle ID")
-		Attribute("name")
-		Attribute("vintage")
-		Attribute("rating")
-		Required("ID", "name", "vintage", "rating")
-	})
-
-	View("default", func() {
-		Attribute("ID")
-		Attribute("name")
-		Attribute("vintage")
-		Attribute("rating")
-	})
-})
-
-var _ = Resource("bottle", func() {
-	Description("A wine bottle")
-	BasePath("/bottles")
-	Action("create", func() {
-		Description("creates a bottle")
-		Routing(POST("/"))
-		Payload(BottlePaylod)
-		Response(Created)
-	})
-
-	Action("show", func() {
-		Description("shows a bottle")
-		Routing(GET("/:id"))
-		Params(func() {
-			Param("id", Integer)
-		})
-		Response(OK, BottlePaylod)
-	})
+// BottleMedia defines the media type used to render bottles.
+var BottleMedia = MediaType("application/vnd.goa.example.bottle+json", func() {
+        Description("A bottle of wine")
+        Attributes(func() {                         // Attributes define the media type shape.
+                Attribute("id", Integer, "Unique bottle ID")
+                Attribute("href", String, "API href for making requests on the bottle")
+                Attribute("name", String, "Name of wine")
+                Required("id", "href", "name")
+        })
+        View("default", func() {                    // View defines a rendering of the media type.
+                Attribute("id")                     // Media types may have multiple views and must
+                Attribute("href")                   // have a "default" view.
+                Attribute("name")
+        })
 })
